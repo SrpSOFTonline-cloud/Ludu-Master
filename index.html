@@ -1,76 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Ludu Master</title>
+<title>LUDU MASTER</title>
 
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #121212;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+body{
+  margin:0;
+  font-family:Arial;
+  background:#111;
+  color:white;
+  text-align:center;
 }
 
-h1 {
-  margin-top: 10px;
+h1{margin:10px}
+
+#board{
+  width:90vw;
+  max-width:500px;
+  height:90vw;
+  max-height:500px;
+  margin:auto;
+  display:grid;
+  grid-template-columns:repeat(15,1fr);
+  grid-template-rows:repeat(15,1fr);
+  background:#000;
 }
 
-#board {
-  display: grid;
-  grid-template-columns: repeat(15, 6vw);
-  grid-template-rows: repeat(15, 6vw);
-  max-width: 500px;
+.cell{
+  background:white;
+  border:1px solid #ccc;
+  position:relative;
 }
 
-.cell {
-  border: 1px solid #222;
-  background: white;
-  position: relative;
+.token{
+  width:70%;
+  height:70%;
+  border-radius:50%;
+  position:absolute;
+  top:15%;
+  left:15%;
 }
 
-.redBase { background: #ff4d4d; }
-.greenBase { background: #4dff88; }
-.yellowBase { background: #ffff66; }
-.blueBase { background: #4da6ff; }
+.red{background:red}
+.green{background:green}
+.yellow{background:gold}
+.blue{background:blue}
 
-.token {
-  width: 70%;
-  height: 70%;
-  border-radius: 50%;
-  position: absolute;
-  top: 15%;
-  left: 15%;
+button{
+  margin-top:15px;
+  padding:12px 25px;
+  font-size:18px;
+  border:none;
+  border-radius:8px;
+  background:orange;
 }
 
-.red { background: red; }
-.green { background: green; }
-.yellow { background: gold; }
-.blue { background: blue; }
-
-button {
-  padding: 12px 25px;
-  font-size: 18px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 8px;
-  background: orange;
-  cursor: pointer;
-}
-
-#status {
-  margin-top: 10px;
-  font-size: 18px;
-}
-
-footer {
-  margin-top: 20px;
-  font-size: 14px;
-  opacity: 0.7;
+footer{
+  margin-top:15px;
+  opacity:.7
 }
 </style>
 </head>
@@ -79,107 +68,95 @@ footer {
 <h1>🎲 LUDU MASTER</h1>
 
 <div id="board"></div>
-<button id="diceBtn">Roll Dice</button>
-<div id="status">Red Player Turn</div>
+<button onclick="rollDice()">Roll Dice</button>
+<div id="status">RED Turn</div>
 
-<footer>
-Developer Company: SRP SOFT.LTD
-</footer>
-
-<audio id="diceSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
-<audio id="moveSound" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
+<footer>Developer Company : SRP SOFT.LTD</footer>
 
 <script>
-const board = document.getElementById("board");
-const statusText = document.getElementById("status");
-const diceBtn = document.getElementById("diceBtn");
+const board=document.getElementById("board");
+const statusText=document.getElementById("status");
 
-const diceSound = document.getElementById("diceSound");
-const moveSound = document.getElementById("moveSound");
-
-const players = ["red", "green", "yellow", "blue"];
-let currentPlayer = 0;
-
-// Create board
-let cells = [];
-for (let i = 0; i < 225; i++) {
-  let cell = document.createElement("div");
-  cell.className = "cell";
-  board.appendChild(cell);
-  cells.push(cell);
+// create board
+let cells=[];
+for(let i=0;i<225;i++){
+  let c=document.createElement("div");
+  c.className="cell";
+  board.appendChild(c);
+  cells.push(c);
 }
 
-// Simple path
-const path = [
-  6,7,8,23,38,53,68,83,98,113,128,143,158,173,172,171,170,169,168,167,166,151,136,121,106,91,76,61,46,31,16,1,2,3,4,5
+// movement path
+const path=[
+6,7,8,23,38,53,68,83,98,113,128,143,158,173,
+172,171,170,169,168,167,166,151,136,121,106,
+91,76,61,46,31,16,1,2,3,4,5
 ];
 
-// Tokens
-let tokens = {
-  red: { pos: -1 },
-  green: { pos: -1 },
-  yellow: { pos: -1 },
-  blue: { pos: -1 }
+const players=["red","green","yellow","blue"];
+let turn=0;
+
+let tokens={
+ red:{pos:-1},
+ green:{pos:-1},
+ yellow:{pos:-1},
+ blue:{pos:-1}
 };
 
-function drawTokens() {
-  document.querySelectorAll(".token").forEach(e => e.remove());
+function drawTokens(){
+ document.querySelectorAll(".token").forEach(e=>e.remove());
 
-  players.forEach(p => {
-    let t = tokens[p];
-    if (t.pos >= 0 && t.pos < path.length) {
-      let token = document.createElement("div");
-      token.className = "token " + p;
-      cells[path[t.pos]].appendChild(token);
-    }
-  });
+ players.forEach(p=>{
+   let t=tokens[p];
+   if(t.pos>=0 && t.pos<path.length){
+     let token=document.createElement("div");
+     token.className="token "+p;
+     cells[path[t.pos]].appendChild(token);
+   }
+ });
 }
 
-function checkKill(player) {
-  let pos = tokens[player].pos;
-  players.forEach(p => {
-    if (p !== player && tokens[p].pos === pos) {
-      tokens[p].pos = -1;
-    }
-  });
+function killCheck(player){
+ let pPos=tokens[player].pos;
+ players.forEach(p=>{
+   if(p!==player && tokens[p].pos===pPos){
+     tokens[p].pos=-1;
+   }
+ });
 }
 
-function checkWin(player) {
-  if (tokens[player].pos === path.length - 1) {
-    alert(player.toUpperCase() + " Player Wins!");
-    location.reload();
-  }
+function winCheck(player){
+ if(tokens[player].pos===path.length-1){
+   alert(player.toUpperCase()+" WIN!");
+   location.reload();
+ }
 }
 
-// Dice Roll
-diceBtn.onclick = () => {
-  diceSound.play();
+function rollDice(){
+ let dice=Math.floor(Math.random()*6)+1;
+ let player=players[turn];
 
-  let dice = Math.floor(Math.random() * 6) + 1;
-  let player = players[currentPlayer];
+ if(tokens[player].pos===-1 && dice===6){
+   tokens[player].pos=0;
+ }
+ else if(tokens[player].pos>=0){
+   tokens[player].pos+=dice;
 
-  if (tokens[player].pos === -1 && dice === 6) {
-    tokens[player].pos = 0;
-  } else if (tokens[player].pos >= 0) {
-    tokens[player].pos += dice;
+   if(tokens[player].pos>=path.length)
+     tokens[player].pos=path.length-1;
 
-    if (tokens[player].pos >= path.length)
-      tokens[player].pos = path.length - 1;
+   killCheck(player);
+   winCheck(player);
+ }
 
-    checkKill(player);
-    checkWin(player);
-  }
+ drawTokens();
 
-  moveSound.play();
-  drawTokens();
+ if(dice!==6){
+   turn=(turn+1)%4;
+ }
 
-  if (dice !== 6) {
-    currentPlayer = (currentPlayer + 1) % 4;
-  }
-
-  statusText.innerText = players[currentPlayer].toUpperCase() + " Player Turn";
-};
-
+ statusText.innerText=players[turn].toUpperCase()+" Turn";
+}
 </script>
 
 </body>
