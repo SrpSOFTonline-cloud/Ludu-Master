@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LUDU MASTER</title>
 
 <style>
@@ -19,12 +19,13 @@ h1{margin:10px}
 #menu{
  position:fixed;
  inset:0;
- background:#000c;
+ background:#000d;
  display:flex;
  flex-direction:column;
  justify-content:center;
  align-items:center;
  gap:15px;
+ z-index:5;
 }
 
 button{
@@ -62,6 +63,7 @@ button{
  position:absolute;
  top:20%;
  left:20%;
+ cursor:pointer;
 }
 
 .red{background:red}
@@ -69,14 +71,9 @@ button{
 .blue{background:blue}
 .yellow{background:gold}
 
-.safe{
- background:linear-gradient(45deg,#fff,#ddd);
-}
+.safe{background:#ccc}
 
-#dice{
- font-size:40px;
- margin-top:10px;
-}
+#dice{font-size:35px;margin-top:10px}
 
 </style>
 </head>
@@ -85,30 +82,23 @@ button{
 <h1>🎲 LUDU MASTER</h1>
 
 <div id="menu">
-<h2>Select Mode</h2>
+<h2>Select Game Mode</h2>
 <button onclick="startGame('offline')">Offline 4 Player</button>
 <button onclick="startGame('bot')">Play With Robot</button>
-<button onclick="alert('Online Multiplayer Coming Soon')">Online Multiplayer</button>
 </div>
 
 <div id="board"></div>
-
 <div id="dice">🎲</div>
 <button onclick="rollDice()">Roll Dice</button>
 <div id="status"></div>
-
-<audio id="diceSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
-<audio id="moveSound" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
 
 <script>
 const board=document.getElementById("board");
 const status=document.getElementById("status");
 const diceUI=document.getElementById("dice");
 
-const diceSound=document.getElementById("diceSound");
-const moveSound=document.getElementById("moveSound");
-
 let mode="offline";
+let diceValue=0;
 
 function startGame(m){
  mode=m;
@@ -116,25 +106,25 @@ function startGame(m){
  status.innerText="RED Turn";
 }
 
+// Build Board
 let cells=[];
-
 for(let r=0;r<15;r++){
  for(let c=0;c<15;c++){
-   let div=document.createElement("div");
-   div.className="cell";
+  let div=document.createElement("div");
+  div.className="cell";
 
-   if(r<6 && c<6) div.classList.add("redBase");
-   else if(r<6 && c>8) div.classList.add("blueBase");
-   else if(r>8 && c<6) div.classList.add("greenBase");
-   else if(r>8 && c>8) div.classList.add("yellowBase");
-   else div.classList.add("path");
+  if(r<6 && c<6) div.classList.add("redBase");
+  else if(r<6 && c>8) div.classList.add("blueBase");
+  else if(r>8 && c<6) div.classList.add("greenBase");
+  else if(r>8 && c>8) div.classList.add("yellowBase");
+  else div.classList.add("path");
 
-   board.appendChild(div);
-   cells.push(div);
+  board.appendChild(div);
+  cells.push(div);
  }
 }
 
-// Safe Star Boxes
+// Safe Star Box
 const safeBoxes=[91,25,133,67];
 safeBoxes.forEach(i=>cells[i].classList.add("safe"));
 
@@ -144,7 +134,7 @@ const path=[91,92,93,94,95,80,65,50,35,20,21,22,23,24,25,40,55,70,85,100,115,130
 const players=["red","blue","yellow","green"];
 let turn=0;
 
-// 4 Tokens Per Player
+// 4 Token Per Player
 let tokens={};
 players.forEach(p=>{
  tokens[p]=[ {pos:-1},{pos:-1},{pos:-1},{pos:-1} ];
@@ -154,14 +144,52 @@ function drawTokens(){
  document.querySelectorAll(".token").forEach(e=>e.remove());
 
  players.forEach(p=>{
-  tokens[p].forEach(t=>{
+  tokens[p].forEach((t,index)=>{
    if(t.pos>=0 && t.pos<path.length){
     let token=document.createElement("div");
     token.className="token "+p;
+
+    if(p===players[turn]){
+     token.onclick=()=>moveToken(p,index);
+    }
+
     cells[path[t.pos]].appendChild(token);
    }
   });
  });
+}
+
+function rollDice(){
+ diceValue=Math.floor(Math.random()*6)+1;
+ diceUI.innerText="🎲 "+diceValue;
+}
+
+function moveToken(player,index){
+ if(player!==players[turn]) return;
+ if(diceValue===0) return;
+
+ let t=tokens[player][index];
+
+ if(t.pos===-1 && diceValue===6){
+  t.pos=0;
+ }
+ else if(t.pos>=0){
+  t.pos+=diceValue;
+  if(t.pos>=path.length) t.pos=path.length-1;
+ }
+
+ killCheck(player,index);
+ diceValue=0;
+ drawTokens();
+
+ if(mode==='bot' && player==='green'){
+  setTimeout(botMove,800);
+ }
+ else{
+  turn=(turn+1)%4;
+ }
+
+ status.innerText=players[turn].toUpperCase()+" Turn";
 }
 
 function killCheck(player,index){
@@ -178,41 +206,14 @@ function killCheck(player,index){
 }
 
 function botMove(){
- if(mode!="bot") return;
- if(players[turn]!="green") return;
- setTimeout(rollDice,800);
+ rollDice();
+ let botTokens=tokens['green'];
+ let index=botTokens.findIndex(t=>t.pos>=0 || diceValue===6);
+ if(index!==-1) moveToken('green',index);
 }
 
-function rollDice(){
- diceSound.play();
-
- let dice=Math.floor(Math.random()*6)+1;
- diceUI.innerText="🎲 "+dice;
-
- let player=players[turn];
- let playerTokens=tokens[player];
-
- let t=playerTokens.find(t=>t.pos>=0);
- if(!t && dice===6) t=playerTokens[0];
-
- if(t){
-  if(t.pos===-1 && dice===6) t.pos=0;
-  else if(t.pos>=0){
-   t.pos+=dice;
-   if(t.pos>=path.length) t.pos=path.length-1;
-  }
- }
-
- moveSound.play();
- drawTokens();
-
- if(dice!==6) turn=(turn+1)%4;
-
- status.innerText=players[turn].toUpperCase()+" Turn";
-
- botMove();
-}
 </script>
 
 </body>
 </html>
+
